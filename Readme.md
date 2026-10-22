@@ -151,7 +151,7 @@ To connect the UI to your automated backend:
 
 <div align="center">
 
-Made with ❤️ for scalable AI automation pipelines.
+Made with ❤️ for scalable AI automation pipelines.........
 
 **[⬆ Back to Top](#-feedsense-ai)**
 
