@@ -1,0 +1,268 @@
+{
+  "name": "Customer_Feedback_UI_Webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "Customer-feedback",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "customerfeedbackintelligence-kdgfnappuz8cmmudm3ucivl"
+        }
+      },
+      "id": "38915b85-6028-41ca-b617-98709c5954cb",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "29e980b0-efdf-4399-b716-e67d6e3a1e9a"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "none",
+        "nodeCredentialType": "groqApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=\n{{ JSON.stringify({\n  model: \"openai/gpt-oss-120b\",\n  temperature: 0.2,\n  max_tokens: 800,\n  messages: [\n    {\n      role: \"system\",\n      content: \"Analyze customer feedback and return valid JSON with category, product, severity, confidence, and reason.\"\n    },\n    {\n      role: \"user\",\n      content: JSON.stringify($json.body || $json)\n    }\n  ]\n}) }}\n",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.GROQ_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "7a657923-9530-4424-9c20-1152c47a3169",
+      "name": "Analyze Feedback with AI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        176,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Webhook').first().json.body || {};\nconst raw = ($input.first().json.choices?.[0]?.message?.content || '').trim();\n\nlet ai = {};\ntry {\n  const cleaned = raw.replace(/^\\s*\\x60\\x60\\x60(?:json)?/i, '').replace(/\\x60\\x60\\x60\\s*$/, '').trim();\n  const start = cleaned.indexOf('{');\n  const end = cleaned.lastIndexOf('}');\n  ai = JSON.parse(start >= 0 && end > start ? cleaned.slice(start, end + 1) : cleaned);\n} catch (e) {\n  ai = {};\n}\n\nconst toText = (v) => Array.isArray(v) ? v.join(', ') : (v == null ? '' : String(v));\n\nreturn [{\n  json: {\n    Email_ID: data.email || ('no-email-' + Date.now()),\n    Category: toText(ai.category) || data.category || 'Uncategorized',\n    Product: toText(ai.product) || 'Not specified',\n    Severity: toText(ai.severity) || 'Unknown',\n    Confidence: toText(ai.confidence) || '',\n    Reason: toText(ai.reason) || 'Not available',\n    Review_Status: 'Pending Review',\n    Received_Date: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "cc0bd847-906a-4de1-a759-04a63ce29aae",
+      "name": "Format AI Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        336,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1ZQWL-XhU0utXTWwPYUM4YDThcrb5B_J1W3wKzeiCPrI",
+          "mode": "list",
+          "cachedResultName": "Customer_Feedback_Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ZQWL-XhU0utXTWwPYUM4YDThcrb5B_J1W3wKzeiCPrI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ZQWL-XhU0utXTWwPYUM4YDThcrb5B_J1W3wKzeiCPrI/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email_ID": "={{ $json.Email_ID }}",
+            "Category": "={{ $json.Category }}",
+            "Product": "={{ $json.Product }}",
+            "Severity": "={{ $json.Severity }}",
+            "Confidence": "={{ $json.Confidence }}",
+            "Reason": "={{ $json.Reason }}",
+            "Review_Status": "={{ $json.Review_Status }}",
+            "Received_Date": "={{ $json.Received_Date }}"
+          },
+          "matchingColumns": [
+            "Email_ID"
+          ],
+          "schema": [
+            {
+              "id": "Email_ID",
+              "displayName": "Email_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product",
+              "displayName": "Product",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Severity",
+              "displayName": "Severity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Confidence",
+              "displayName": "Confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reason",
+              "displayName": "Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Review_Status",
+              "displayName": "Review_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Received_Date",
+              "displayName": "Received_Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "6f97a254-cd99-49a4-bc34-c9bf1df3fb83",
+      "name": "Append or update row in sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        512,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, customer_name: $('Webhook').first().json.body.customer_name || '', email: $('Webhook').first().json.body.email || '', category: $('Format AI Result').first().json.Category, product: $('Format AI Result').first().json.Product, severity: $('Format AI Result').first().json.Severity, confidence: $('Format AI Result').first().json.Confidence, reason: $('Format AI Result').first().json.Reason, sentiment: $('Format AI Result').first().json.Category, key_issues: $('Format AI Result').first().json.Reason, suggested_action: 'Severity: ' + $('Format AI Result').first().json.Severity + ' - review and respond to the customer', review_status: $('Format AI Result').first().json.Review_Status, received_date: $('Format AI Result').first().json.Received_Date }) }}",
+        "options": {}
+      },
+      "id": "aa9584d5-dc27-4937-a6d1-4edb68a8f451",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        704,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Analyze Feedback with AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Feedback with AI": {
+      "main": [
+        [
+          {
+            "node": "Format AI Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format AI Result": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "182e6c35-b869-4b23-bde4-14ce4e04ad13",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ec5f1d8068280017afb8880c7765cc390f25377979823372406b5040edc0516b"
+  },
+  "nodeGroups": [],
+  "id": "ILBzrJF0fVj1202b",
+  "tags": []
+}
